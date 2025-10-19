@@ -1,73 +1,178 @@
-# React + TypeScript + Vite
+# 🔒 UNA Chat - Full Stack Secure Chat Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![Security-First](https://img.shields.io/badge/approach-security%20first-brightgreen)](./AGENTS.MD)
+[![SOLID Principles](https://img.shields.io/badge/architecture-SOLID-blue)](./AGENTS.MD)
+[![Test-First Development](https://img.shields.io/badge/methodology-TDD%2FBDD-yellow)](./AGENTS.MD)
+[![Auth0](https://img.shields.io/badge/auth-Auth0-orange)](https://auth0.com)
 
-Currently, two official plugins are available:
+Aplicación de chat en tiempo real con autenticación Auth0, validación y sanitización siguiendo **SSDLC (Secure Software Development Lifecycle)**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Quick Start
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+### Requisitos Previos
 
-## Expanding the ESLint configuration
+- Node.js 18+
+- npm o yarn
+- Git
+- Cuenta de Auth0 (gratuita en https://auth0.com)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Instalación
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# Clonar repositorio
+git clone https://github.com/BrandonJafeth/una-chat.git
+cd una-chat
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
+# Instalar dependencias
+
+npm install      tseslint.configs.recommendedTypeChecked,
+
       // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
+
+# Configurar variables de entorno      tseslint.configs.strictTypeChecked,
+
+cp .env.example .env      // Optionally, add this for stylistic rules
+
       tseslint.configs.stylisticTypeChecked,
 
-      // Other configs...
-    ],
+# Ejecutar en modo desarrollo
+
+npm run dev      // Other configs...
+
+```    ],
+
     languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+
+### Access Points      parserOptions: {
+
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+
+# Editar .env con tus credenciales de Auth0
+# VITE_AUTH0_DOMAIN=tu-dominio.auth0.com
+# VITE_AUTH0_CLIENT_ID=tu-client-id
+# VITE_AUTH0_AUDIENCE=https://una-chat-api
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Configuración de Auth0
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. **Crear cuenta en Auth0** (https://auth0.com)
+2. **Crear una aplicación:**
+   - Tipo: Single Page Application
+   - Nombre: UNA Chat
+3. **Configurar URLs:**
+   - Allowed Callback URLs: `http://localhost:5173/callback`
+   - Allowed Logout URLs: `http://localhost:5173`
+   - Allowed Web Origins: `http://localhost:5173`
+4. **Copiar credenciales al archivo `.env`:**
+   ```
+   VITE_AUTH0_DOMAIN=dev-XXXXXXXX.us.auth0.com
+   VITE_AUTH0_CLIENT_ID=XXXXXXXXXXXXXXXXXXX
+   VITE_AUTH0_AUDIENCE=https://una-chat-api
+   ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
+### Ejecutar Aplicación
+
+```bash
+# Desarrollo
+npm run dev
+
+# Build para producción
+npm run build
+
+# Preview de build
+npm run preview
+```
+
+**URLs por defecto:**
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:5000/api
+- **API Docs:** http://localhost:5000/api-docs
+
+---
+
+## 📚 Arquitectura del Proyecto
+
+### Frontend (React + Vite + TypeScript)
+
+```
+src/
+├── components/
+│   ├── auth/             # Auth0 login/protected routes
+│   ├── common/           # Componentes reutilizables
+│   ├── chat/             # Componentes de chat
+│   └── layout/           # Layout components
+│
+├── hooks/                # Custom React hooks
+├── services/             # API y servicios
+├── utils/                # Utilidades
+
+├── App.tsx              # Componente principal      // Other configs...
+
+└── main.tsx             # Entry point      // Enable lint rules for React
+
+```      reactX.configs['recommended-typescript'],
+
       // Enable lint rules for React DOM
-      reactDom.configs.recommended,
+
+---      reactDom.configs.recommended,
+
     ],
-    languageOptions: {
+
+## 🛡️ Características de Seguridad    languageOptions: {
+
       parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
+
+### Frontend        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+
+- ✅ XSS Protection (DOMPurify)        tsconfigRootDir: import.meta.dirname,
+
+- ✅ sessionStorage (no localStorage)      },
+
+- ✅ URL Validation      // other options...
+
+- ✅ Content Security Policy    },
+
+- ✅ Input Validation (Zod)  },
+
 ])
+
+### Backend```
+
+- ✅ Helmet Security Headers
+- ✅ CORS Restrictivo
+- ✅ Rate Limiting
+- ✅ JWT Authentication
+- ✅ Logging de Eventos
+
+---
+
+## 📦 Tech Stack
+
+**Frontend:** React 18, Vite, TypeScript, Tailwind CSS, Socket.IO Client, Axios, Zod, DOMPurify  
+**Backend:** Node.js, Express, Socket.IO, TypeScript, Helmet, Winston
+
+---
+
+## 📋 Comandos
+
+```bash
+npm run dev          # Desarrollo
+npm run build        # Build producción
+npm run lint         # Linting
+npm test             # Tests
 ```
+
+---
+
+## 📄 Licencia
+
+MIT - Universidad Nacional de Costa Rica
+
+---
+
+**Última actualización:** Octubre 2025
