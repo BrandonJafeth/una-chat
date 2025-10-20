@@ -8,7 +8,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import { useAuth0Token } from './hooks/useAuth0Token'
 import { apiService } from './services/api.service'
 import { socketService } from './services/socket.service'
-
+import './index.css'
 function App() {
   const { user, logout, isAuthenticated } = useAuth0()
   const { token } = useAuth0Token()
