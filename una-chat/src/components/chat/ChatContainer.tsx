@@ -5,11 +5,13 @@ import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { getRandomColor } from '../../utils/helpers'
 import { DEFAULT_COLORS } from '../../utils/constants'
+// no local state needed here
 
 export function ChatContainer() {
-  const { messages, sendMessage, isLoading, error } = useChat()
+  const { messages, sendMessage, isLoading, error, loadHistory } = useChat()
   const { user } = useAuth0()
   const [userColor, setUserColor] = useLocalStorage('chat_color', DEFAULT_COLORS[0])
+  
 
   if (!userColor) {
     setUserColor(getRandomColor())
@@ -24,10 +26,14 @@ export function ChatContainer() {
       color: userColor,
       timestamp: new Date().toISOString(),
     })
+    // reload history after sending so UI refreshes from server
+    void loadHistory()
   }
 
+  // removed test send helper; sendMessage now reloads history after send
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-full bg-gray-50">
       {error && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-3">
           <p className="text-sm text-red-800 text-center">{error}</p>
@@ -40,7 +46,7 @@ export function ChatContainer() {
           currentUsername={username}
           isLoading={isLoading}
         />
-        <MessageInput onSend={handleSendMessage} disabled={isLoading} />
+  <MessageInput onSend={handleSendMessage} disabled={isLoading} />
       </div>
     </div>
   )

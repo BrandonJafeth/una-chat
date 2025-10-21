@@ -25,8 +25,10 @@ export function MessageList({
   }
 
   if (messages.length === 0) {
+    // Use flex-1 and min-h-0 so this component behaves as a flex child and
+    // doesn't push sibling input out of view when there are no messages.
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex-1 min-h-0 flex items-center justify-center text-gray-500">
         <div className="text-center">
           <svg
             className="w-16 h-16 mx-auto mb-4 text-gray-300"

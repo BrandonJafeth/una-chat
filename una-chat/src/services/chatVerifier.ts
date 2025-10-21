@@ -1,5 +1,6 @@
 import { apiService } from './api.service'
-import { socketService } from './socket.service'
+import { io, type Socket } from 'socket.io-client'
+import { SOCKET_URL } from '../utils/constants'
 
 type CheckResult = {
   ok: boolean
@@ -28,7 +29,18 @@ export async function verifyChatIntegration(token?: string, opts?: { timeoutMs?:
         timeout(timeoutMs).then(() => ({ success: false, error: { message: 'health check timeout' } } as any)),
       ])
 
-      if (healthResp?.success) {
+      // Accept multiple possible health response shapes from different backends
+      const healthOk = !!(
+        healthResp?.success ||
+        // some backends return { ok: true }
+        (healthResp as any)?.ok ||
+        // or { status: 'ok' }
+        (healthResp as any)?.status === 'ok' ||
+        // or wrapped in data: { data: { success: true } }
+        (healthResp as any)?.data?.success
+      )
+
+      if (healthOk) {
         messages.push('API health: ok')
       } else if (healthResp?.error) {
         messages.push(`API health error: ${healthResp.error.message || JSON.stringify(healthResp.error)}`)
@@ -51,9 +63,16 @@ export async function verifyChatIntegration(token?: string, opts?: { timeoutMs?:
     }
 
     try {
-      socketService.connect(token)
-      socketService.getSocket()?.once('connect', onConnect)
-      socketService.getSocket()?.once('connect_error', onConnectError)
+      // create a temporary socket for the integration check so we don't interfere
+      // with the app's main socketService singleton
+      const tempSocket: Socket = io(SOCKET_URL, {
+        auth: token ? { token } : {},
+        transports: ['websocket', 'polling'],
+        timeout: timeoutMs,
+      })
+
+      tempSocket.once('connect', onConnect)
+      tempSocket.once('connect_error', onConnectError)
 
       // wait briefly for connection or timeout
       const start = Date.now()
@@ -67,17 +86,17 @@ export async function verifyChatIntegration(token?: string, opts?: { timeoutMs?:
       } else {
         messages.push('Socket connection: timeout or failed')
       }
-    } catch (err) {
-      messages.push(`Socket check failed: ${err instanceof Error ? err.message : String(err)}`)
-    } finally {
-      // cleanup
+
+      // cleanup temporary socket
       try {
-        socketService.getSocket()?.off('connect', onConnect)
-        socketService.getSocket()?.off('connect_error', onConnectError)
-        socketService.disconnect()
+        tempSocket.off('connect', onConnect)
+        tempSocket.off('connect_error', onConnectError)
+        tempSocket.disconnect()
       } catch (e) {
         // ignore
       }
+    } catch (err) {
+      messages.push(`Socket check failed: ${err instanceof Error ? err.message : String(err)}`)
     }
 
     const ok = messages.every((m) => !/failed|error|timeout/i.test(m))

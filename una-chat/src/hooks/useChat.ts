@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSocket } from './useSocket'
 import { SOCKET_EVENTS } from '../utils/constants'
 import { securityService } from '../services/security.service'
+import { apiService } from '../services/api.service'
 
 export interface ChatMessage {
   nombre: string
@@ -16,6 +17,7 @@ interface UseChatReturn {
   error: string | null
   sendMessage: (message: ChatMessage) => void
   clearMessages: () => void
+  loadHistory: () => Promise<void>
 }
 
 export function useChat(): UseChatReturn {
@@ -24,7 +26,28 @@ export function useChat(): UseChatReturn {
   const [error, setError] = useState<string | null>(null)
   const { emit, on, off, isConnected } = useSocket()
 
+  const mountedRef = useRef(true)
+
+  const loadHistory = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const resp = await apiService.get<{ data: ChatMessage[] }>(`/chat/messages/history?limit=20`)
+      const msgs = resp?.data?.data
+      if (mountedRef.current && Array.isArray(msgs)) {
+        setMessages(msgs)
+      }
+    } catch (err) {
+      console.warn('Failed to load message history:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
+    // load recent history on mount
+    mountedRef.current = true
+    void loadHistory()
+
     const handleMessageReceived = (...args: unknown[]): void => {
       try {
         const data = args[0] as string
@@ -50,12 +73,13 @@ export function useChat(): UseChatReturn {
       setIsLoading(false)
     }
 
-    on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
+  on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
     on(SOCKET_EVENTS.ERROR, handleError)
 
     return () => {
       off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
       off(SOCKET_EVENTS.ERROR, handleError)
+      mountedRef.current = false
     }
   }, [on, off])
 
@@ -95,5 +119,6 @@ export function useChat(): UseChatReturn {
     error,
     sendMessage,
     clearMessages,
+    loadHistory,
   }
 }
