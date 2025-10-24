@@ -13,8 +13,8 @@ export function useSocket(): UseSocketReturn {
   const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
-    socketService.connect()
-
+    // Do not auto-connect here; App will connect with a token when available.
+    // This avoids unauthenticated connection attempts and connect_error logs.
     const handleConnect = (): void => {
       setIsConnected(true)
     }
@@ -26,7 +26,7 @@ export function useSocket(): UseSocketReturn {
     socketService.on(SOCKET_EVENTS.CONNECTION, handleConnect)
     socketService.on(SOCKET_EVENTS.DISCONNECT, handleDisconnect)
 
-    setIsConnected(socketService.isConnected())
+  setIsConnected(socketService.isConnected())
 
     return () => {
       socketService.off(SOCKET_EVENTS.CONNECTION, handleConnect)

@@ -6,12 +6,14 @@ interface MessageInputProps {
   onSend: (message: string) => void
   disabled?: boolean
   placeholder?: string
+  onTextChange?: (text: string) => void
 }
 
 export function MessageInput({
   onSend,
   disabled = false,
   placeholder = 'Type a message...',
+  onTextChange,
 }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -34,6 +36,7 @@ export function MessageInput({
     const value = e.target.value
     if (value.length <= MAX_MESSAGE_LENGTH) {
       setMessage(value)
+      if (onTextChange) onTextChange(value)
       
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
@@ -59,6 +62,7 @@ export function MessageInput({
     <form
       onSubmit={handleSubmit}
       className="border-t border-gray-200 bg-white p-4"
+      onClick={() => textareaRef.current?.focus()}
     >
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
@@ -70,7 +74,8 @@ export function MessageInput({
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
+            className="flex-1 resize-none px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32 overflow-y-auto pointer-events-auto z-10"
+            tabIndex={0}
           />
           <Button
             type="submit"
@@ -93,6 +98,7 @@ export function MessageInput({
               />
             </svg>
           </Button>
+          {/* intentionally no extra buttons here; only the send button */}
         </div>
         {isNearLimit && (
           <div className="text-right">

@@ -11,7 +11,7 @@ export const MAX_USERNAME_LENGTH = 50
 export const MIN_USERNAME_LENGTH = 3
 
 export const SOCKET_EVENTS = {
-  CONNECTION: 'connection',
+  CONNECTION: 'connect',
   DISCONNECT: 'disconnect',
   MESSAGE_SEND: 'message:send',
   MESSAGE_RECEIVED: 'message:received',

@@ -8,6 +8,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import { useAuth0Token } from './hooks/useAuth0Token'
 import { apiService } from './services/api.service'
 import { socketService } from './services/socket.service'
+import { verifyChatIntegration } from './services/chatVerifier'
+import { inspectToken } from './utils/tokenInspector'
 import './index.css'
 function App() {
   const { user, logout, isAuthenticated } = useAuth0()
@@ -18,6 +20,25 @@ function App() {
       apiService.setToken(token)
       socketService.disconnect()
       socketService.connect(token)
+      // In development, perform an integration check and log results
+      if (import.meta.env.DEV) {
+        // Quick token inspection
+        try {
+          const info = inspectToken(token)
+          console.info('Auth token inspection:', info)
+        } catch (e) {
+          console.warn('Token inspection failed:', e)
+        }
+
+        ;(async () => {
+          const res = await verifyChatIntegration(token, { timeoutMs: 4000 })
+          if (res.ok) {
+            console.info('Chat integration check: OK', res.messages)
+          } else {
+            console.warn('Chat integration check: issues detected', res.messages)
+          }
+        })()
+      }
     }
   }, [token])
 

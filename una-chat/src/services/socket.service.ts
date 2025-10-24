@@ -14,6 +14,7 @@ class SocketService {
       return
     }
 
+    console.info('[socketService] connect() called', { url: SOCKET_URL, hasToken: !!token })
     this.socket = io(SOCKET_URL, {
       auth: token ? { token } : {},
       reconnectionDelay: RECONNECT_DELAY,
@@ -27,22 +28,33 @@ class SocketService {
   private setupDefaultListeners(): void {
     if (!this.socket) return
 
+    // Attach any listeners that were registered before the socket existed
+    try {
+      for (const [event, callbacks] of this.listeners.entries()) {
+        for (const cb of callbacks) {
+          this.socket.on(event, cb)
+        }
+      }
+    } catch (e) {
+      console.warn('[socketService] failed to re-attach stored listeners', e)
+    }
+
     this.socket.on(SOCKET_EVENTS.CONNECTION, () => {
-      console.info('Socket connected successfully')
+      console.info('[socketService] Socket connected successfully', { id: this.socket?.id })
       this.connectionAttempts = 0
     })
 
     this.socket.on(SOCKET_EVENTS.DISCONNECT, (reason: string) => {
-      console.warn('Socket disconnected:', reason)
+      console.warn('[socketService] Socket disconnected:', reason, { connected: this.socket?.connected, id: this.socket?.id })
       this.handleReconnection()
     })
 
     this.socket.on(SOCKET_EVENTS.ERROR, (error: Error) => {
-      console.error('Socket error:', error)
+      console.error('[socketService] Socket error:', error)
     })
 
     this.socket.on('connect_error', (error: Error) => {
-      console.error('Connection error:', error)
+      console.error('[socketService] connect_error:', error)
       this.connectionAttempts++
       
       if (this.connectionAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
