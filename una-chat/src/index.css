@@ -1,23 +1,136 @@
 @import "tailwindcss";
 
-* {
-  margin: 0;
-  padding: 0;
-}
 
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+@layer components {
+  /* Fade in animation used by message items */
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in;
   }
-  to {
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .message-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .message-content .media-image {
+    /* Limit large images so they don't overflow the chat or overlap UI */
+    max-width: 420px;
+    width: auto;
+    max-height: 320px;
+    height: auto;
+    border-radius: 0.75rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    display: block;
+  }
+
+  .message-content .media-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Align media to the correct side depending on message owner */
+  .message-bubble.own .message-content .media-image {
+    margin-left: auto;
+    margin-right: 0.25rem;
+  }
+  .message-bubble.other .message-content .media-image {
+    margin-right: auto;
+    margin-left: 0.25rem;
+  }
+
+  /* Videos: same constraints */
+  .message-content .media-video {
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.75rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: block;
+  }
+
+  .message-content video.media-video {
+    background: #000;
+  }
+
+  .message-content a {
+    text-decoration: underline;
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
+    word-break: break-all;
+  }
+
+  .message-content a:hover {
     opacity: 1;
-    transform: translateY(0);
+  }
+
+  /* User Avatar Color Badge */
+  .user-avatar-badge {
+    transition: transform 0.2s ease;
+  }
+
+  .group:hover .user-avatar-badge {
+    transform: scale(1.1);
+  }
+
+  /* Scrollbar Styles (WebKit only) */
+  .chat-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 3px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
   }
 }
+
+@layer utilities {
+  /* Mobile: make media fill bubble width for small screens */
+  @media (max-width: 640px) {
+    .message-content .media-image,
+    .message-content .media-video,
+    .message-content iframe {
+      max-width: 100%;
+      width: 100%;
+      height: auto;
+      max-height: 55vh;
+    }
+
+    .message-bubble-full-mobile {
+      max-width: 100%;
+    }
+  }
+
+  /* Smooth transitions utility (apply explicitly when desired) */
+  .smooth-transitions {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
 

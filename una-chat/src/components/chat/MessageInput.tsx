@@ -1,5 +1,4 @@
 import { useState, useRef, type FormEvent, type ChangeEvent } from 'react'
-import { Button } from '../common/Button'
 import { MAX_MESSAGE_LENGTH } from '../../utils/constants'
 
 interface MessageInputProps {
@@ -8,7 +7,6 @@ interface MessageInputProps {
   placeholder?: string
   onTextChange?: (text: string) => void
 }
-
 export function MessageInput({
   onSend,
   disabled = false,
@@ -61,56 +59,51 @@ export function MessageInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-gray-200 bg-white p-4"
+      className="border-t border-gray-100 bg-white px-4 py-3 sticky bottom-0"
       onClick={() => textareaRef.current?.focus()}
     >
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
+      <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Attach">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.2-9.2a3.5 3.5 0 014.95 4.95l-9.2 9.2a1.5 1.5 0 01-2.12-2.12l8.49-8.49"/></svg>
+        </button>
+        <div className="flex-1 relative">
           <textarea
             ref={textareaRef}
             value={message}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            onFocus={undefined}
+            onBlur={undefined}
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32 overflow-y-auto pointer-events-auto z-10"
+            className="w-full resize-none px-4 py-2 border rounded-full focus:outline-none transition-shadow duration-150 max-h-40 overflow-y-auto bg-gray-50"
             tabIndex={0}
+            aria-label="Message input"
           />
-          <Button
-            type="submit"
-            disabled={disabled || !message.trim()}
-            variant="primary"
-            size="md"
-            className="self-end"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-          </Button>
-          {/* intentionally no extra buttons here; only the send button */}
+
+          {isNearLimit && message.length > 0 && (
+            <div className="absolute bottom-2 right-3 pointer-events-none">
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${remainingChars < 50 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{remainingChars}</span>
+            </div>
+          )}
         </div>
-        {isNearLimit && (
-          <div className="text-right">
-            <span
-              className={`text-xs ${
-                remainingChars < 50 ? 'text-red-600' : 'text-yellow-600'
-              }`}
-            >
-              {remainingChars} characters remaining
-            </span>
-          </div>
-        )}
+
+        <button
+          type="submit"
+          disabled={disabled || !message.trim()}
+          aria-label="Send message"
+          className={`h-12 w-12 rounded-full flex items-center justify-center transition-transform duration-150 focus:ring-2 focus:ring-blue-300 ${
+            message.trim() && !disabled
+              ? 'bg-blue-600 text-white shadow-xl hover:scale-105'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {/* Paper plane (send) icon - filled look for better visibility */}
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+            <path d="M2 21l20-9L2 3v7l15 2-15 2v6z" fill="currentColor" />
+          </svg>
+        </button>
       </div>
     </form>
   )
