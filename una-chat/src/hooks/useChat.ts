@@ -28,8 +28,7 @@ export function useChat(): UseChatReturn {
   const { emit, on, off } = useSocket()
 
   const mountedRef = useRef(true)
-  const receivedViaSocketRef = useRef(false)
-  const pollTimerRef = useRef<number | null>(null)
+  const refreshTimerRef = useRef<number | null>(null)
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true)
@@ -68,8 +67,16 @@ export function useChat(): UseChatReturn {
         }
 
         setMessages((prev) => [...prev, sanitizedMessage])
-        // mark that we received messages via socket so polling fallback can stop
-        receivedViaSocketRef.current = true
+        // schedule a single history refresh (coalesced) so we don't spam the API
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current)
+        }
+        refreshTimerRef.current = window.setTimeout(() => {
+          if (mountedRef.current) {
+            void loadHistory()
+          }
+          refreshTimerRef.current = null
+        }, 250)
       } catch (err) {
         console.error('Error parsing message:', err)
         setError('Failed to parse message')
@@ -88,56 +95,17 @@ export function useChat(): UseChatReturn {
       void loadHistory()
     }
 
-    // Polling fallback: if we don't receive socket events, poll history until we do
-    const startPollingFallback = (): void => {
-      const POLL_INTERVAL = 2000 // 2s
-      const MAX_POLL_DURATION = 30_000 // stop after 30s
-      const start = Date.now()
-
-      if (pollTimerRef.current) return
-
-      console.debug('[useChat] starting polling fallback for history')
-      pollTimerRef.current = window.setInterval(async () => {
-        if (receivedViaSocketRef.current) {
-          // stop polling once socket delivered messages
-          if (pollTimerRef.current) {
-            clearInterval(pollTimerRef.current)
-            pollTimerRef.current = null
-            console.debug('[useChat] polling fallback stopped (socket active)')
-          }
-          return
-        }
-
-        if (Date.now() - start > MAX_POLL_DURATION) {
-          if (pollTimerRef.current) {
-            clearInterval(pollTimerRef.current)
-            pollTimerRef.current = null
-            console.debug('[useChat] polling fallback stopped (timeout)')
-          }
-          return
-        }
-
-        try {
-          await loadHistory()
-        } catch (e) {
-          console.debug('[useChat] polling fallback loadHistory failed', e)
-        }
-      }, POLL_INTERVAL)
-    }
-
-  on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
+    on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
     on(SOCKET_EVENTS.ERROR, handleError)
     on(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
-    // start polling until we detect socket-delivered messages
-    startPollingFallback()
 
     return () => {
       off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
       off(SOCKET_EVENTS.ERROR, handleError)
       off(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current)
-        pollTimerRef.current = null
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = null
       }
       mountedRef.current = false
     }
