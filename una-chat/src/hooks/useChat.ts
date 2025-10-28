@@ -92,7 +92,6 @@ export function useChat(): UseChatReturn {
     const handleConnectEvent = (): void => {
       // Clear stale errors and reload history when we regain connection
       setError(null)
-      void loadHistory()
     }
 
     on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
