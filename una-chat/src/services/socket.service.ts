@@ -53,6 +53,15 @@ class SocketService {
       console.error('[socketService] Socket error:', error)
     })
 
+    // Debug: log any incoming event name and payload to help diagnose real-time issues
+    try {
+      this.socket.onAny((event: string, ...args: unknown[]) => {
+        console.debug('[socketService] received event:', event, args)
+      })
+    } catch (e) {
+      // onAny may not be available in some socket.io client versions; ignore if not supported
+    }
+
     this.socket.on('connect_error', (error: Error) => {
       console.error('[socketService] connect_error:', error)
       this.connectionAttempts++
@@ -76,7 +85,12 @@ class SocketService {
 
   emit(event: string, data: unknown): void {
     if (this.socket?.connected) {
-      this.socket.emit(event, data)
+      try {
+        console.debug('[socketService] emitting', event, data)
+        this.socket.emit(event, data)
+      } catch (e) {
+        console.error('[socketService] emit failed:', e)
+      }
     } else {
       console.warn('Socket not connected. Cannot emit event:', event)
     }

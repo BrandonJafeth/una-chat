@@ -16,7 +16,7 @@ interface UseChatReturn {
   messages: ChatMessage[]
   isLoading: boolean
   error: string | null
-  sendMessage: (message: ChatMessage) => void
+  sendMessage: (message: ChatMessage) => Promise<void>
   clearMessages: () => void
   loadHistory: () => Promise<void>
 }
@@ -28,6 +28,7 @@ export function useChat(): UseChatReturn {
   const { emit, on, off } = useSocket()
 
   const mountedRef = useRef(true)
+  const refreshTimerRef = useRef<number | null>(null)
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true)
@@ -66,6 +67,16 @@ export function useChat(): UseChatReturn {
         }
 
         setMessages((prev) => [...prev, sanitizedMessage])
+        // schedule a single history refresh (coalesced) so we don't spam the API
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current)
+        }
+        refreshTimerRef.current = window.setTimeout(() => {
+          if (mountedRef.current) {
+            void loadHistory()
+          }
+          refreshTimerRef.current = null
+        }, 250)
       } catch (err) {
         console.error('Error parsing message:', err)
         setError('Failed to parse message')
@@ -84,7 +95,7 @@ export function useChat(): UseChatReturn {
       void loadHistory()
     }
 
-  on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
+    on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
     on(SOCKET_EVENTS.ERROR, handleError)
     on(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
 
@@ -92,32 +103,41 @@ export function useChat(): UseChatReturn {
       off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
       off(SOCKET_EVENTS.ERROR, handleError)
       off(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
       mountedRef.current = false
     }
   }, [on, off])
 
-  const sendMessage = useCallback((message: ChatMessage): void => {
-    // Prefer checking the service directly to avoid stale hook state
+  const sendMessage = useCallback(async (message: ChatMessage): Promise<void> => {
     if (!socketService.isConnected()) {
       setError('Not connected to server')
       console.warn('[useChat] sendMessage blocked: socketService reports disconnected')
-      return
+      throw new Error('Not connected to server')
     }
 
     setIsLoading(true)
     setError(null)
 
-    try {
-      const messageToSend = JSON.stringify({
-        nombre: securityService.sanitizeText(message.nombre),
-        mensaje: securityService.sanitizeText(message.mensaje),
-        color: securityService.sanitizeText(message.color),
-      })
+    const payload = {
+      nombre: securityService.sanitizeText(message.nombre),
+      mensaje: securityService.sanitizeText(message.mensaje),
+      color: securityService.sanitizeText(message.color),
+      timestamp: message.timestamp || new Date().toISOString(),
+    }
 
-      emit(SOCKET_EVENTS.MESSAGE_SEND, messageToSend)
+    try {
+      // Persist message via HTTP so backend stores it reliably
+      await apiService.post('/chat/messages', payload)
+
+      // Notify other clients via socket (best-effort)
+      emit(SOCKET_EVENTS.MESSAGE_SEND, payload)
     } catch (err) {
       console.error('Error sending message:', err)
       setError('Failed to send message')
+      throw err
     } finally {
       setIsLoading(false)
     }

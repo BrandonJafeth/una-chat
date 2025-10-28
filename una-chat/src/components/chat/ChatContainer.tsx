@@ -19,11 +19,22 @@ export function ChatContainer() {
   const username = user?.name || user?.email || 'Anonymous'
 
   const handleSendMessage = (messageText: string): void => {
-    sendMessage({
+    const msg = {
       nombre: username,
       mensaje: messageText,
       color: userColor,
       timestamp: new Date().toISOString(),
+    }
+
+    // Call async sendMessage and refresh history on success
+    void sendMessage(msg)
+      .then(() => {
+        void loadHistory()
+      })
+      .catch((err) => {
+        console.warn('Failed to send message:', err)
+      })
+
     })
     void loadHistory()
   }
