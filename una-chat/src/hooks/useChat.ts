@@ -35,11 +35,27 @@ export function useChat(): UseChatReturn {
     try {
       // API returns an ApiResponse<T> where `data` contains the payload (array of messages).
       // Use T = ChatMessage[] so resp.data is the messages array.
-      const resp = await apiService.get<ChatMessage[]>(`/chat/messages/history?limit=20`)
-      const msgs = resp?.data ?? []
+      const resp = await apiService.get<unknown>(`/chat/messages/history?limit=20`)
+      // Accept multiple possible shapes from the API for robustness
+      // 1) resp.data is ChatMessage[]
+      // 2) resp.data.data is ChatMessage[]
+      // 3) resp is already the array
+      // Fallback to empty array
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyResp = resp as any
+      let msgs: ChatMessage[] = []
+
+      if (Array.isArray(anyResp?.data)) {
+        msgs = anyResp.data
+      } else if (Array.isArray(anyResp?.data?.data)) {
+        msgs = anyResp.data.data
+      } else if (Array.isArray(anyResp)) {
+        msgs = anyResp
+      }
 
       if (mountedRef.current && Array.isArray(msgs)) {
         setMessages(msgs)
+        console.debug('[useChat] loaded history, messages:', msgs.length)
       }
     } catch (err) {
       console.warn('Failed to load message history:', err)
@@ -66,7 +82,8 @@ export function useChat(): UseChatReturn {
           timestamp: parsedMessage.timestamp || new Date().toISOString(),
         }
 
-        setMessages((prev) => [...prev, sanitizedMessage])
+  setMessages((prev) => [...prev, sanitizedMessage])
+  console.debug('[useChat] socket message received:', sanitizedMessage)
         // schedule a single history refresh (coalesced) so we don't spam the API
         if (refreshTimerRef.current) {
           clearTimeout(refreshTimerRef.current)
