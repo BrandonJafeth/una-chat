@@ -9,6 +9,10 @@ import {
   AUTH0_AUDIENCE, 
   AUTH0_REDIRECT_URI 
 } from './utils/constants'
+import { initializeSentry } from './config/sentry.config'
+
+// Initialize Sentry as early as possible
+initializeSentry()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
