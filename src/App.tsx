@@ -10,7 +10,27 @@ import { apiService } from './services/api.service'
 import { socketService } from './services/socket.service'
 import { verifyChatIntegration } from './services/chatVerifier'
 import { inspectToken } from './utils/tokenInspector'
+import { Sentry } from './config/sentry.config'
 import './index.css'
+
+// Sentry Error Test Button - Remove in production
+function ErrorButton() {
+  return (
+    <button
+      onClick={() => {
+        Sentry.captureMessage('User triggered test log', {
+          level: 'info',
+          tags: { log_source: 'sentry_test' }
+        })
+        console.log('✅ Test message sent to Sentry')
+      }}
+      className="fixed bottom-20 right-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-lg z-50"
+    >
+      Test Sentry
+    </button>
+  )
+}
+
 function App() {
   const { user, logout, isAuthenticated } = useAuth0()
   const { token } = useAuth0Token()
@@ -66,6 +86,8 @@ function App() {
             <ChatContainer />
           </main>
           <Footer />
+          {/* Sentry test button - Remove in production */}
+          {import.meta.env.DEV && <ErrorButton />}
         </div>
       </ProtectedRoute>
     </ErrorBoundary>
