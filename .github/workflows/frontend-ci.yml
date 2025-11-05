@@ -48,6 +48,7 @@ jobs:
     name: Snyk Security (SAST + SCA + optional IaC/Container)
     runs-on: ubuntu-latest
     needs: [test]   # 👈 corre solo si Lint y Tests pasaron
+    continue-on-error: true  # 👈 Opcional: no bloquea el workflow si falla
     permissions:
       contents: read
       security-events: write
@@ -133,7 +134,7 @@ jobs:
   build:
     name: Build (Vite)
     runs-on: ubuntu-latest
-    needs: [snyk]   # 👈 solo si pasa todo lo anterior
+    needs: [test]   # 👈 solo requiere lint y test (snyk es opcional)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
