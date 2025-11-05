@@ -26,24 +26,32 @@ export async function verifyChatIntegration(token?: string, opts?: { timeoutMs?:
     try {
       const healthResp = await Promise.race([
         apiService.get('/health'),
-        timeout(timeoutMs).then(() => ({ success: false, error: { message: 'health check timeout' } } as any)),
+        timeout(timeoutMs).then(() => ({ success: false, error: { message: 'health check timeout' } } as { success: boolean; error: { message: string } })),
       ])
 
       // Accept multiple possible health response shapes from different backends
+      const anyHealthResp = healthResp as { 
+        success?: boolean; 
+        ok?: boolean; 
+        status?: string; 
+        data?: { success?: boolean };
+        error?: { message?: string }
+      }
+      
       const healthOk = !!(
-        healthResp?.success ||
+        anyHealthResp?.success ||
         // some backends return { ok: true }
-        (healthResp as any)?.ok ||
+        anyHealthResp?.ok ||
         // or { status: 'ok' }
-        (healthResp as any)?.status === 'ok' ||
+        anyHealthResp?.status === 'ok' ||
         // or wrapped in data: { data: { success: true } }
-        (healthResp as any)?.data?.success
+        anyHealthResp?.data?.success
       )
 
       if (healthOk) {
         messages.push('API health: ok')
-      } else if (healthResp?.error) {
-        messages.push(`API health error: ${healthResp.error.message || JSON.stringify(healthResp.error)}`)
+      } else if (anyHealthResp?.error) {
+        messages.push(`API health error: ${anyHealthResp.error.message || JSON.stringify(anyHealthResp.error)}`)
       } else {
         messages.push('API health: unexpected response')
       }
@@ -77,7 +85,6 @@ export async function verifyChatIntegration(token?: string, opts?: { timeoutMs?:
       // wait briefly for connection or timeout
       const start = Date.now()
       while (Date.now() - start < timeoutMs && !connected) {
-        // eslint-disable-next-line no-await-in-loop
         await timeout(100)
       }
 
@@ -92,8 +99,8 @@ export async function verifyChatIntegration(token?: string, opts?: { timeoutMs?:
         tempSocket.off('connect', onConnect)
         tempSocket.off('connect_error', onConnectError)
         tempSocket.disconnect()
-      } catch (e) {
-        // ignore
+      } catch {
+        // ignore cleanup errors
       }
     } catch (err) {
       messages.push(`Socket check failed: ${err instanceof Error ? err.message : String(err)}`)

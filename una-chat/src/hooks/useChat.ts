@@ -125,7 +125,7 @@ export function useChat(): UseChatReturn {
       }
       mountedRef.current = false
     }
-  }, [on, off])
+  }, [on, off, loadHistory])
 
   const sendMessage = useCallback(async (message: ChatMessage): Promise<void> => {
     if (!socketService.isConnected()) {

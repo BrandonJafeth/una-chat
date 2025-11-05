@@ -35,8 +35,8 @@ class SocketService {
           this.socket.on(event, cb)
         }
       }
-    } catch (e) {
-      console.warn('[socketService] failed to re-attach stored listeners', e)
+    } catch (error) {
+      console.warn('[socketService] failed to re-attach stored listeners', error)
     }
 
     this.socket.on(SOCKET_EVENTS.CONNECTION, () => {
@@ -58,7 +58,7 @@ class SocketService {
       this.socket.onAny((event: string, ...args: unknown[]) => {
         console.debug('[socketService] received event:', event, args)
       })
-    } catch (e) {
+    } catch {
       // onAny may not be available in some socket.io client versions; ignore if not supported
     }
 
@@ -88,8 +88,8 @@ class SocketService {
       try {
         console.debug('[socketService] emitting', event, data)
         this.socket.emit(event, data)
-      } catch (e) {
-        console.error('[socketService] emit failed:', e)
+      } catch (error) {
+        console.error('[socketService] emit failed:', error)
       }
     } else {
       console.warn('Socket not connected. Cannot emit event:', event)
