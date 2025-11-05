@@ -11,7 +11,7 @@ import {
 } from './utils/constants'
 import { initializeSentry } from './config/sentry.config'
 
-// Initialize Sentry as early as possible
+// Initialize Sentry as early as possibles
 initializeSentry()
 
 createRoot(document.getElementById('root')!).render(
