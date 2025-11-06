@@ -8,7 +8,7 @@ import { DEFAULT_COLORS } from '../../utils/constants'
 // no local state needed here
 
 export function ChatContainer() {
-  const { messages, sendMessage, isLoading, error, loadHistory } = useChat()
+  const { messages, sendMessage, isLoading, error } = useChat()
   const { user } = useAuth0()
   const [userColor, setUserColor] = useLocalStorage('chat_color', DEFAULT_COLORS[0])
   
@@ -27,17 +27,11 @@ export function ChatContainer() {
       timestamp: new Date().toISOString(),
     }
 
-    // Call async sendMessage and refresh history on success
-    void sendMessage(msg)
-      .then(() => {
-        void loadHistory()
-      })
-      .catch((err) => {
-        console.warn('Failed to send message:', err)
-      })
+    // Send message - backend will broadcast it back via socket to ALL clients
+    void sendMessage(msg).catch((err) => {
+      console.warn('Failed to send message:', err)
+    })
   }
-
-  // removed test send helper; sendMessage now reloads history after send
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
