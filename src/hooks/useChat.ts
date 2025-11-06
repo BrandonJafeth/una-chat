@@ -25,9 +25,10 @@ export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { emit, on, off } = useSocket()
+  const { emit, on, off, isConnected } = useSocket()
 
   const mountedRef = useRef(true)
+  const messageHandlerRef = useRef<((...args: unknown[]) => void) | null>(null)
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true)
@@ -67,6 +68,7 @@ export function useChat(): UseChatReturn {
     // load recent history on mount
     mountedRef.current = true
     console.log('🚀 [useChat] useEffect mounting - registering listeners')
+    console.log('🔍 [useChat] Socket connected state:', socketService.isConnected())
     void loadHistory()
 
     const handleMessageReceived = (...args: unknown[]): void => {
@@ -99,6 +101,9 @@ export function useChat(): UseChatReturn {
       }
     }
 
+    // Store handler in ref for re-registration
+    messageHandlerRef.current = handleMessageReceived
+
     const handleError = (...args: unknown[]): void => {
       const errorMessage = args[0] as string
       setError(errorMessage)
@@ -106,8 +111,15 @@ export function useChat(): UseChatReturn {
     }
 
     const handleConnectEvent = (): void => {
-      // Clear stale errors and reload history when we regain connection
+      console.log('🔌 [useChat] Socket reconnected - re-registering message listener')
       setError(null)
+      
+      // Re-register the message listener after reconnection
+      if (messageHandlerRef.current) {
+        off(SOCKET_EVENTS.MESSAGE_RECEIVED, messageHandlerRef.current)
+        on(SOCKET_EVENTS.MESSAGE_RECEIVED, messageHandlerRef.current)
+        console.log('✅ [useChat] Message listener re-registered after reconnection')
+      }
     }
 
     console.log('📡 [useChat] Registering listener for:', SOCKET_EVENTS.MESSAGE_RECEIVED)
