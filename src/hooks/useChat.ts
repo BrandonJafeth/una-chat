@@ -66,11 +66,12 @@ export function useChat(): UseChatReturn {
   useEffect(() => {
     // load recent history on mount
     mountedRef.current = true
+    console.log('🚀 [useChat] useEffect mounting - registering listeners')
     void loadHistory()
 
     const handleMessageReceived = (...args: unknown[]): void => {
       try {
-        console.log('🔔 [useChat] Socket event received! Args:', args)
+        console.log('🔔 [useChat] handleMessageReceived called! Args:', args)
         
         const raw = args[0]
         const parsedMessage =
@@ -109,11 +110,15 @@ export function useChat(): UseChatReturn {
       setError(null)
     }
 
+    console.log('📡 [useChat] Registering listener for:', SOCKET_EVENTS.MESSAGE_RECEIVED)
     on(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
+    console.log('✅ [useChat] Listener registered successfully')
+    
     on(SOCKET_EVENTS.ERROR, handleError)
     on(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
 
     return () => {
+      console.log('🔌 [useChat] Cleaning up listeners on unmount')
       off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
       off(SOCKET_EVENTS.ERROR, handleError)
       off(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
