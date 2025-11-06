@@ -25,6 +25,26 @@ class SocketService {
     this.setupDefaultListeners()
   }
 
+  private reattachListeners(): void {
+    if (!this.socket) {
+      console.warn('⚠️ [socketService] Cannot reattach listeners: socket is null')
+      return
+    }
+
+    console.log('🔄 [socketService] Starting listener re-attachment process...')
+    console.log('📊 [socketService] Total events with listeners:', this.listeners.size)
+    
+    for (const [event, callbacks] of this.listeners.entries()) {
+      console.log(`🔗 [socketService] Re-attaching ${callbacks.length} listener(s) for event: "${event}"`)
+      for (const cb of callbacks) {
+        // Remove first to avoid duplicates
+        this.socket.off(event, cb)
+        this.socket.on(event, cb)
+      }
+    }
+    console.log('✅ [socketService] Listener re-attachment complete')
+  }
+
   private setupDefaultListeners(): void {
     if (!this.socket) return
 
@@ -35,24 +55,15 @@ class SocketService {
     })
 
     // Attach any listeners that were registered before the socket existed
-    try {
-      console.log('🔄 [socketService] Starting listener re-attachment process...')
-      console.log('📊 [socketService] Total events with listeners:', this.listeners.size)
-      
-      for (const [event, callbacks] of this.listeners.entries()) {
-        console.log(`🔗 [socketService] Re-attaching ${callbacks.length} listener(s) for event: "${event}"`)
-        for (const cb of callbacks) {
-          this.socket.on(event, cb)
-        }
-      }
-      console.log('✅ [socketService] Listener re-attachment complete')
-    } catch (error) {
-      console.warn('[socketService] failed to re-attach stored listeners', error)
-    }
+    this.reattachListeners()
 
     this.socket.on(SOCKET_EVENTS.CONNECTION, () => {
       console.info('✅ [socketService] Socket connected successfully', { id: this.socket?.id })
       this.connectionAttempts = 0
+      
+      // Re-attach all stored listeners after connection
+      console.log('🔄 [socketService] Re-attaching listeners after connection...')
+      this.reattachListeners()
     })
 
     this.socket.on(SOCKET_EVENTS.DISCONNECT, (reason: string) => {
@@ -107,11 +118,12 @@ class SocketService {
     this.listeners.get(event)?.push(callback)
     console.log(`   → Total listeners for "${event}":`, this.listeners.get(event)?.length)
     
-    if (this.socket?.connected) {
-      console.log(`   → Socket is connected, attaching listener immediately`)
+    // ALWAYS attach to socket if it exists, regardless of connection state
+    if (this.socket) {
+      console.log(`   → Socket exists, attaching listener NOW (connected: ${this.socket.connected})`)
       this.socket.on(event, callback)
     } else {
-      console.log(`   → Socket not connected yet, will attach on connect`)
+      console.log(`   → Socket not created yet, will attach when connect() is called`)
     }
   }
 
