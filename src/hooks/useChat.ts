@@ -28,7 +28,6 @@ export function useChat(): UseChatReturn {
   const { emit, on, off } = useSocket()
 
   const mountedRef = useRef(true)
-  const refreshTimerRef = useRef<number | null>(null)
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true)
@@ -71,9 +70,13 @@ export function useChat(): UseChatReturn {
 
     const handleMessageReceived = (...args: unknown[]): void => {
       try {
+        console.log('🔔 [useChat] Socket event received! Args:', args)
+        
         const raw = args[0]
         const parsedMessage =
           typeof raw === 'string' ? (JSON.parse(raw) as ChatMessage) : (raw as ChatMessage)
+
+        console.log('📩 [useChat] Parsed message:', parsedMessage)
 
         const sanitizedMessage: ChatMessage = {
           nombre: securityService.sanitizeText(parsedMessage.nombre || ''),
@@ -82,20 +85,15 @@ export function useChat(): UseChatReturn {
           timestamp: parsedMessage.timestamp || new Date().toISOString(),
         }
 
-  setMessages((prev) => [...prev, sanitizedMessage])
-  console.debug('[useChat] socket message received:', sanitizedMessage)
-        // schedule a single history refresh (coalesced) so we don't spam the API
-        if (refreshTimerRef.current) {
-          clearTimeout(refreshTimerRef.current)
-        }
-        refreshTimerRef.current = window.setTimeout(() => {
-          if (mountedRef.current) {
-            void loadHistory()
-          }
-          refreshTimerRef.current = null
-        }, 250)
+        setMessages((prev) => {
+          console.log('✅ [useChat] Adding message to state. Current count:', prev.length)
+          return [...prev, sanitizedMessage]
+        })
+        
+        // ❌ REMOVED: loadHistory() causes messages to disappear temporarily
+        // The backend broadcasts to ALL clients, so we receive our own messages too
       } catch (err) {
-        console.error('Error parsing message:', err)
+        console.error('❌ [useChat] Error parsing message:', err)
         setError('Failed to parse message')
       }
     }
@@ -119,10 +117,6 @@ export function useChat(): UseChatReturn {
       off(SOCKET_EVENTS.MESSAGE_RECEIVED, handleMessageReceived)
       off(SOCKET_EVENTS.ERROR, handleError)
       off(SOCKET_EVENTS.CONNECTION, handleConnectEvent)
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current)
-        refreshTimerRef.current = null
-      }
       mountedRef.current = false
     }
   }, [on, off, loadHistory])
