@@ -25,7 +25,7 @@ export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { emit, on, off, isConnected } = useSocket()
+  const { emit, on, off } = useSocket()
 
   const mountedRef = useRef(true)
   const messageHandlerRef = useRef<((...args: unknown[]) => void) | null>(null)
