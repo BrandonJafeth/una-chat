@@ -28,42 +28,44 @@ class SocketService {
   private setupDefaultListeners(): void {
     if (!this.socket) return
 
+    // 🔍 DEBUG: Log EVERY event that arrives from server
+    this.socket.onAny((event: string, ...args: unknown[]) => {
+      console.log('🔔 [socketService] INCOMING EVENT:', event)
+      console.log('📦 [socketService] Event data:', args)
+    })
+
     // Attach any listeners that were registered before the socket existed
     try {
+      console.log('🔄 [socketService] Starting listener re-attachment process...')
+      console.log('📊 [socketService] Total events with listeners:', this.listeners.size)
+      
       for (const [event, callbacks] of this.listeners.entries()) {
+        console.log(`🔗 [socketService] Re-attaching ${callbacks.length} listener(s) for event: "${event}"`)
         for (const cb of callbacks) {
           this.socket.on(event, cb)
         }
       }
+      console.log('✅ [socketService] Listener re-attachment complete')
     } catch (error) {
       console.warn('[socketService] failed to re-attach stored listeners', error)
     }
 
     this.socket.on(SOCKET_EVENTS.CONNECTION, () => {
-      console.info('[socketService] Socket connected successfully', { id: this.socket?.id })
+      console.info('✅ [socketService] Socket connected successfully', { id: this.socket?.id })
       this.connectionAttempts = 0
     })
 
     this.socket.on(SOCKET_EVENTS.DISCONNECT, (reason: string) => {
-      console.warn('[socketService] Socket disconnected:', reason, { connected: this.socket?.connected, id: this.socket?.id })
+      console.warn('⚠️ [socketService] Socket disconnected:', reason, { connected: this.socket?.connected, id: this.socket?.id })
       this.handleReconnection()
     })
 
     this.socket.on(SOCKET_EVENTS.ERROR, (error: Error) => {
-      console.error('[socketService] Socket error:', error)
+      console.error('❌ [socketService] Socket error:', error)
     })
 
-    // Debug: log any incoming event name and payload to help diagnose real-time issues
-    try {
-      this.socket.onAny((event: string, ...args: unknown[]) => {
-        console.debug('[socketService] received event:', event, args)
-      })
-    } catch {
-      // onAny may not be available in some socket.io client versions; ignore if not supported
-    }
-
     this.socket.on('connect_error', (error: Error) => {
-      console.error('[socketService] connect_error:', error)
+      console.error('❌ [socketService] connect_error:', error)
       this.connectionAttempts++
       
       if (this.connectionAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
@@ -97,11 +99,20 @@ class SocketService {
   }
 
   on(event: string, callback: SocketCallback): void {
+    console.log(`📌 [socketService] Storing listener for event: "${event}"`)
     if (!this.listeners.has(event)) {
       this.listeners.set(event, [])
+      console.log(`   → Created new listener array for: "${event}"`)
     }
     this.listeners.get(event)?.push(callback)
-    this.socket?.on(event, callback)
+    console.log(`   → Total listeners for "${event}":`, this.listeners.get(event)?.length)
+    
+    if (this.socket?.connected) {
+      console.log(`   → Socket is connected, attaching listener immediately`)
+      this.socket.on(event, callback)
+    } else {
+      console.log(`   → Socket not connected yet, will attach on connect`)
+    }
   }
 
   off(event: string, callback?: SocketCallback): void {
