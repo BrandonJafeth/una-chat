@@ -1,14 +1,14 @@
-name: Nuclei scan
+name: Nuclei scan (frontend public)
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'   # solo para pruebas; luego bájalo
+    - cron: '*/5 * * * *'  # solo para pruebas; luego bájalo
 
 env:
-  TARGET_URL: "https://una-chat.vercel.app/"
+  TARGET_URL: "https://una-chat.vercel.app/"   # <- cámbiala
   NUCLEI_SEVERITY: "critical,high"
 
 jobs:
@@ -23,22 +23,35 @@ jobs:
         uses: projectdiscovery/nuclei-action@v2.0.1
         with:
           target: ${{ env.TARGET_URL }}
-          json: true
-          output: nuclei-results.json
-          # aquí van los flags CLI extra:
-          flags: "-severity ${{ env.NUCLEI_SEVERITY }}"
+          # Exporta resultados en JSONL (válido para Nuclei 3.x)
+          # y evita incluir request/response crudos (reduce tamaño)
+          flags: >
+            -severity ${{ env.NUCLEI_SEVERITY }}
+            -jsonl-export nuclei-results.jsonl
+            -omit-raw
+          # (opcional) también puedes pedir SARIF para Security Dashboard:
+          sarif-export: nuclei.sarif
 
-      - name: Upload Nuclei report (JSON)
+      - name: Upload Nuclei report (JSONL)
         uses: actions/upload-artifact@v4
         with:
           name: nuclei-results
-          path: nuclei-results.json
+          path: nuclei-results.jsonl
 
-      # (Opcional) Falla si hay high/critical
+      # (Opcional) sube el SARIF si lo generaste
+      - name: Upload SARIF
+        if: ${{ always() && steps.nuclei_scan.outputs.sarif_exists == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuclei-sarif
+          path: nuclei.sarif
+
+      # (Opcional) Falla si hay high/critical (parseando JSONL)
       - name: Fail on high/critical findings
         if: ${{ always() }}
         run: |
-          count=$(jq '[.[] | select(((.info.severity // .severity) | ascii_downcase) as $s | ($s=="high" or $s=="critical"))] | length' nuclei-results.json 2>/dev/null || echo 0)
+          # Slurp JSONL en un arreglo y cuenta severidades altas
+          count=$(jq -s '[.[] | select(((.info.severity // .severity) | ascii_downcase) as $s | ($s=="high" or $s=="critical"))] | length' nuclei-results.jsonl 2>/dev/null || echo 0)
           echo "Encontrados $count hallazgos high/critical"
           if [ "${count}" -gt 0 ]; then
             exit 1
