@@ -1,0 +1,33 @@
+name: Nuclei scan (frontend public)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # permite ejecutar manualmente desde Actions -> Run workflow
+  schedule:
+    - cron: '*/5 * * * *'  # se ejecuta cada 5 minutos (frecuencia mínima permitida por GitHub)
+
+env:
+  TARGET_URL: "https://una-chat.vercel.app/"
+  NUCLEI_SEVERITY: "critical,high"
+
+jobs:
+  nuclei-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run Nuclei scan
+        uses: projectdiscovery/nuclei-action@v2
+        with:
+          args: >
+            -u "${{ env.TARGET_URL }}"
+            -o nuclei-results.json -json
+            -severity "${{ env.NUCLEI_SEVERITY }}"
+
+      - name: Upload Nuclei report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuclei-results
+          path: nuclei-results.json
