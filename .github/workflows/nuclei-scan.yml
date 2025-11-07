@@ -19,16 +19,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Nuclei - Vulnerability Scan
-        id: nuclei_scan
         uses: projectdiscovery/nuclei-action@v2.0.1
         with:
           target: ${{ env.TARGET_URL }}
-          # Exporta resultados en JSONL (válido para Nuclei 3.x)
-          # y evita incluir request/response crudos (reduce tamaño)
           flags: >
-            -severity ${{ env.NUCLEI_SEVERITY }}
+            -update-templates
             -jsonl-export nuclei-results.jsonl
             -omit-raw
+            -tags exposures,misconfiguration,files,panels,technologies,takeover
+            -vv
+
           # (opcional) también puedes pedir SARIF para Security Dashboard:
           sarif-export: nuclei.sarif
 
