@@ -8,7 +8,7 @@ on:
     - cron: '*/5 * * * *'  # solo para pruebas; luego bájalo
 
 env:
-  TARGET_URL: "https://una-chat.vercel.app/"   # <- cámbiala
+  TARGET_URL: "https://una-chat.vercel.app/"
   NUCLEI_SEVERITY: "critical,high"
 
 jobs:
@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Nuclei - Vulnerability Scan
+        id: nuclei_scan
         uses: projectdiscovery/nuclei-action@v2.0.1
         with:
           target: ${{ env.TARGET_URL }}
@@ -28,17 +29,38 @@ jobs:
             -omit-raw
             -tags exposures,misconfiguration,files,panels,technologies,takeover
             -vv
-
-          # (opcional) también puedes pedir SARIF para Security Dashboard:
           sarif-export: nuclei.sarif
 
+      # 🔍 Depuración: listar archivos generados
+      - name: Inspect results (debug)
+        if: ${{ always() }}
+        run: |
+          echo "=== Archivos generados ==="
+          ls -lh || true
+          echo "=== Primeras líneas del resultado (si existe) ==="
+          if [ -f nuclei-results.jsonl ]; then
+            head -n 10 nuclei-results.jsonl
+          else
+            echo "⚠️ No se generó nuclei-results.jsonl todavía."
+          fi
+
+      # 🧱 Crear archivo vacío si no existe (evita warning de upload)
+      - name: Create empty result if none
+        if: ${{ always() }}
+        run: |
+          if [ ! -f nuclei-results.jsonl ]; then
+            echo "[]" > nuclei-results.jsonl
+            echo "✅ Archivo vacío creado para upload."
+          fi
+
+      # ⬆️ Subir el archivo de resultados (siempre existirá)
       - name: Upload Nuclei report (JSONL)
         uses: actions/upload-artifact@v4
         with:
           name: nuclei-results
           path: nuclei-results.jsonl
 
-      # (Opcional) sube el SARIF si lo generaste
+      # ⬆️ Subir SARIF si se generó
       - name: Upload SARIF
         if: ${{ always() && steps.nuclei_scan.outputs.sarif_exists == 'true' }}
         uses: actions/upload-artifact@v4
@@ -46,13 +68,15 @@ jobs:
           name: nuclei-sarif
           path: nuclei.sarif
 
-      # (Opcional) Falla si hay high/critical (parseando JSONL)
+      # 🚨 Falla el job si hay high/critical (usa jq sobre JSONL)
       - name: Fail on high/critical findings
         if: ${{ always() }}
         run: |
-          # Slurp JSONL en un arreglo y cuenta severidades altas
           count=$(jq -s '[.[] | select(((.info.severity // .severity) | ascii_downcase) as $s | ($s=="high" or $s=="critical"))] | length' nuclei-results.jsonl 2>/dev/null || echo 0)
-          echo "Encontrados $count hallazgos high/critical"
+          echo "🔎 Encontrados $count hallazgos high/critical"
           if [ "${count}" -gt 0 ]; then
+            echo "❌ Se detectaron vulnerabilidades críticas o altas."
             exit 1
+          else
+            echo "✅ No se encontraron vulnerabilidades high/critical."
           fi
