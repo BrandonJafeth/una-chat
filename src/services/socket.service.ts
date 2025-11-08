@@ -132,18 +132,21 @@ class SocketService {
   }
 
   off(event: string, callback?: SocketCallback): void {
+    console.log(`🔓 [socketService] Removing listener for event: "${event}"`)
     if (callback) {
       const callbacks = this.listeners.get(event)
       if (callbacks) {
         const index = callbacks.indexOf(callback)
         if (index > -1) {
           callbacks.splice(index, 1)
+          console.log(`   → Removed from Map. Remaining: ${callbacks.length}`)
         }
       }
       this.socket?.off(event, callback)
     } else {
       this.listeners.delete(event)
       this.socket?.off(event)
+      console.log(`   → Removed all listeners for "${event}"`)
     }
   }
 
