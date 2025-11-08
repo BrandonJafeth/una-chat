@@ -5,7 +5,7 @@ import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { getRandomColor } from '../../utils/helpers'
 import { DEFAULT_COLORS } from '../../utils/constants'
-// no local state needed here
+
 
 export function ChatContainer() {
   const { messages, sendMessage, isLoading, error } = useChat()
@@ -27,7 +27,11 @@ export function ChatContainer() {
       timestamp: new Date().toISOString(),
     }
 
-    // Send message - backend will broadcast it back via socket to ALL clients
+    console.log('📤 [ChatContainer] Sending message:', msg)
+    console.log('   → Username length:', username.length)
+    console.log('   → Message length:', messageText.length)
+    console.log('   → Color format:', userColor)
+
     void sendMessage(msg).catch((err) => {
       console.warn('Failed to send message:', err)
     })
