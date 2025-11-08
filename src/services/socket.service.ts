@@ -56,14 +56,6 @@ class SocketService {
       // 🔍 DEBUG: Check if we have listeners registered for this event
       const listenersForEvent = this.listeners.get(event)
       console.log(`🔍 [socketService] Our registered listeners for "${event}":`, listenersForEvent?.length || 0)
-      
-      if (listenersForEvent && listenersForEvent.length > 0) {
-        console.log(`🎯 [socketService] Manually triggering ${listenersForEvent.length} listener(s)`)
-        listenersForEvent.forEach((cb, index) => {
-          console.log(`   → Calling listener #${index + 1}`)
-          cb(...args)
-        })
-      }
     })
 
     // Attach any listeners that were registered before the socket existed
