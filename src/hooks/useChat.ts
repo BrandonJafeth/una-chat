@@ -155,14 +155,19 @@ export function useChat(): UseChatReturn {
       timestamp: message.timestamp || new Date().toISOString(),
     }
 
+    console.log('📨 [useChat] Sending payload to backend:', payload)
+    console.log('   → Original message:', message)
+    console.log('   → Sanitized payload:', payload)
+
     try {
       // Persist message via HTTP so backend stores it reliably
-      await apiService.post('/chat/messages', payload)
+      const response = await apiService.post('/chat/messages', payload)
+      console.log('✅ [useChat] Message sent successfully:', response)
 
       // Notify other clients via socket (best-effort)
       emit(SOCKET_EVENTS.MESSAGE_SEND, payload)
     } catch (err) {
-      console.error('Error sending message:', err)
+      console.error('❌ [useChat] Error sending message:', err)
       setError('Failed to send message')
       throw err
     } finally {
