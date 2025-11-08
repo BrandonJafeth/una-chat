@@ -160,8 +160,14 @@ class SocketService {
       this.socket.disconnect()
       this.socket = null
     }
-    this.listeners.clear()
+    // ❌ DO NOT clear listeners - they should persist across reconnections
+    // this.listeners.clear()
     this.connectionAttempts = 0
+  }
+
+  clearAllListeners(): void {
+    console.log('🗑️ [socketService] Clearing all listeners')
+    this.listeners.clear()
   }
 
   isConnected(): boolean {
