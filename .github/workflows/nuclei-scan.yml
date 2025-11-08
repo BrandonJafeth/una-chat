@@ -1,4 +1,4 @@
-name: Nuclei scan (frontend public)
+name: Nuclei scan
 
 on:
   push:
