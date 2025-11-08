@@ -64,6 +64,7 @@ function App() {
 
   const handleLogout = (): void => {
     if (confirm('Are you sure you want to logout?')) {
+      socketService.clearAllListeners()
       socketService.disconnect()
       sessionStorage.clear()
       logout({ 
